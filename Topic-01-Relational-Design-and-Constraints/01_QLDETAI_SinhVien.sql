@@ -1,0 +1,72 @@
+-- =============================================================================
+-- BÀI TẬP 01: QUẢN LÝ SINH VIÊN VÀ ĐỀ TÀI NGHIÊN CỨU KHOA HỌC (QLDETAI_SV)
+-- Mục tiêu: Thiết kế thực thể, khóa chính (PK), khóa ngoại (FK), CHECK constraints
+-- =============================================================================
+
+USE master;
+GO
+IF EXISTS (SELECT name FROM sys.databases WHERE name = N'QLDETAI_SV')
+    DROP DATABASE QLDETAI_SV;
+GO
+CREATE DATABASE QLDETAI_SV;
+GO
+USE QLDETAI_SV;
+GO
+
+-- 1. BẢNG SINH VIÊN
+CREATE TABLE SINHVIEN (
+    MASV CHAR(6) NOT NULL,
+    TENSV NVARCHAR(50) NOT NULL,
+    SODT VARCHAR(10) NULL,
+    LOP CHAR(6) NOT NULL,
+    DIACHI NVARCHAR(100) NOT NULL,
+    CONSTRAINT PK_SinhVien PRIMARY KEY (MASV),
+    CONSTRAINT CK_SinhVien_SDT CHECK (LEN(SODT) = 10 OR SODT IS NULL)
+);
+GO
+
+-- 2. BẢNG ĐỀ TÀI
+CREATE TABLE DETAI (
+    MADT CHAR(6) NOT NULL,
+    TENDT NVARCHAR(100) NOT NULL,
+    KINHPHI DECIMAL(12,2) DEFAULT 0,
+    CONSTRAINT PK_DeTai PRIMARY KEY (MADT),
+    CONSTRAINT CK_DeTai_KinhPhi CHECK (KINHPHI >= 0)
+);
+GO
+
+-- 3. BẢNG THAM GIA ĐỀ TÀI (N-N)
+CREATE TABLE THAMGIA (
+    MASV CHAR(6) NOT NULL,
+    MADT CHAR(6) NOT NULL,
+    VAITRO NVARCHAR(50) DEFAULT N'Thành viên',
+    KETQUA DECIMAL(4,2) NULL,
+    CONSTRAINT PK_ThamGia PRIMARY KEY (MASV, MADT),
+    CONSTRAINT FK_ThamGia_SV FOREIGN KEY (MASV) REFERENCES SINHVIEN(MASV) ON DELETE CASCADE,
+    CONSTRAINT FK_ThamGia_DT FOREIGN KEY (MADT) REFERENCES DETAI(MADT) ON DELETE CASCADE,
+    CONSTRAINT CK_ThamGia_Diem CHECK (KETQUA BETWEEN 0.0 AND 10.0)
+);
+GO
+
+-- DỮ LIỆU MẪU
+INSERT INTO SINHVIEN VALUES
+('SV0001', N'Nguyễn Văn An', '0903111222', 'D21CQ01', N'TP. Hồ Chí Minh'),
+('SV0002', N'Trần Thị Bích', '0903222333', 'D21CQ01', N'Bình Dương'),
+('SV0003', N'Lê Hoàng Cường', '0903333444', 'D21CQ02', N'Đồng Nai');
+
+INSERT INTO DETAI VALUES
+('DT0001', N'Nghiên cứu ứng dụng AI trong quản lý chuỗi cung ứng', 15000000),
+('DT0002', N'Xây dựng hệ thống IoT quan trắc môi trường', 20000000);
+
+INSERT INTO THAMGIA VALUES
+('SV0001', 'DT0001', N'Chủ nhiệm', 9.5),
+('SV0002', 'DT0001', N'Thành viên', 9.0),
+('SV0003', 'DT0002', N'Chủ nhiệm', 8.5);
+GO
+
+-- TRUY VẤN KIỂM TRA
+SELECT sv.MASV, sv.TENSV, sv.LOP, dt.TENDT, tg.VAITRO, tg.KETQUA
+FROM SINHVIEN sv
+JOIN THAMGIA tg ON sv.MASV = tg.MASV
+JOIN DETAI dt ON tg.MADT = dt.MADT;
+GO
